@@ -123,9 +123,18 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="bg-white p-4 rounded-lg">
+              <img
+                src="/IMG-20251004-WA0030.jpg"
+                alt="YAROTECH Logo"
+                className="h-24 w-auto object-contain"
+              />
+            </div>
+          </div>
           <CardTitle className="text-2xl">YAROTECH Invoice Pro</CardTitle>
           <CardDescription>Sign in to manage your invoices</CardDescription>
         </CardHeader>
