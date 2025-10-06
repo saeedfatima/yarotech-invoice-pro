@@ -1,58 +1,116 @@
-"use client";
-
-import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2 } from "lucide-react";
+
+interface SaleItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+}
 
 interface Product {
   id: string;
   name: string;
   price: number;
-  quantity: number;
 }
 
-export default function CreateSale() {
-  const [products, setProducts] = useState<Product[]>([]);
+interface SalesFormProps {
+  onSaleCreated?: () => void;
+}
+
+export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
+  const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [issuerName, setIssuerName] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Add a product line
-  const addProduct = () => {
-    setProducts([...products, { id: Date.now().toString(), name: "", price: 0, quantity: 1 }]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  
+  useEffect(() => {
+    loadCustomers();
+    loadProducts();
+  }, []);
+  
+  const loadCustomers = async () => {
+    const { data } = await supabase.from("customers").select("id, name");
+    if (data) setCustomers(data);
+  };
+  
+  const loadProducts = async () => {
+    const { data } = await supabase.from("products").select("id, name, price");
+    if (data) setProducts(data);
   };
 
-  // Update product fields
-  const updateProduct = (id: string, field: keyof Product, value: any) => {
-    setProducts(products.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
+  const addSaleItem = () => {
+    setSaleItems([
+      ...saleItems,
+      {
+        id: Date.now().toString(),
+        product_id: "",
+        product_name: "",
+        price: 0,
+        quantity: 1,
+      },
+    ]);
   };
 
-  // Remove product line
-  const removeProduct = (id: string) => {
-    setProducts(products.filter((p) => p.id !== id));
+  const updateSaleItem = (id: string, field: keyof SaleItem, value: any) => {
+    setSaleItems(
+      saleItems.map((item) => {
+        if (item.id === id) {
+          if (field === "product_id") {
+            const product = products.find((p) => p.id === value);
+            return {
+              ...item,
+              product_id: value,
+              product_name: product?.name || "",
+              price: product?.price || 0,
+            };
+          }
+          return { ...item, [field]: value };
+        }
+        return item;
+      })
+    );
   };
 
-  // Calculate totals
-  const calculateTotal = (p: Product) => p.price * p.quantity;
-  const grandTotal = products.reduce((sum, p) => sum + calculateTotal(p), 0);
+  const removeSaleItem = (id: string) => {
+    setSaleItems(saleItems.filter((item) => item.id !== id));
+  };
 
-  // Handle form submission
+  const calculateTotal = (item: SaleItem) => item.price * item.quantity;
+  const grandTotal = saleItems.reduce((sum, item) => sum + calculateTotal(item), 0);
+
   const handleSubmit = async () => {
-    if (!selectedCustomer || !issuerName || products.length === 0) {
-      alert("Please fill in all fields and add at least one product.");
+    if (!selectedCustomer || !issuerName || saleItems.length === 0) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields and add at least one product.",
+        variant: "destructive",
+      });
       return;
     }
 
     setLoading(true);
 
     try {
-      // Insert sale into DB
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .insert({
-          customer_name: selectedCustomer, // switched to text input
+          customer_id: selectedCustomer,
           issuer_name: issuerName,
           total: grandTotal,
         })
@@ -61,100 +119,161 @@ export default function CreateSale() {
 
       if (saleError) throw saleError;
 
-      // Insert sale items
       const { error: itemsError } = await supabase.from("sale_items").insert(
-        products.map((p) => ({
+        saleItems.map((item) => ({
           sale_id: sale.id,
-          product_name: p.name,
-          quantity: p.quantity,
-          price: p.price,
-          total: calculateTotal(p),
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          price: item.price,
         }))
       );
 
       if (itemsError) throw itemsError;
 
-      alert("Sale created successfully!");
-      setProducts([]);
+      toast({ title: "Sale created successfully!" });
+      setSaleItems([]);
       setSelectedCustomer("");
       setIssuerName("");
+      onSaleCreated?.();
     } catch (err) {
       console.error(err);
-      alert("Failed to create sale.");
+      toast({
+        title: "Failed to create sale",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Create Sale</h1>
+    <Card>
+      <CardHeader>
+        <CardTitle>Create New Sale</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="customer">Customer *</Label>
+            <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="space-y-4">
-        {/* Customer Name */}
-        <div className="space-y-2">
-          <Label htmlFor="customer">Customer Name *</Label>
-          <Input
-            id="customer"
-            value={selectedCustomer}
-            onChange={(e) => setSelectedCustomer(e.target.value)}
-            placeholder="Enter customer name"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="issuer">Issuer Name *</Label>
+            <Input
+              id="issuer"
+              value={issuerName}
+              onChange={(e) => setIssuerName(e.target.value)}
+              placeholder="Enter your name"
+            />
+          </div>
         </div>
 
-        {/* Issuer Name */}
-        <div className="space-y-2">
-          <Label htmlFor="issuer">Issuer Name *</Label>
-          <Input
-            id="issuer"
-            value={issuerName}
-            onChange={(e) => setIssuerName(e.target.value)}
-            placeholder="Enter your name"
-          />
-        </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-lg">Products</Label>
+            <Button onClick={addSaleItem} size="sm" variant="outline">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Product
+            </Button>
+          </div>
 
-        {/* Product List */}
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Products</h2>
-          {products.map((product) => (
-            <div key={product.id} className="flex items-center gap-2 mb-2">
-              <Input
-                placeholder="Product name"
-                value={product.name}
-                onChange={(e) => updateProduct(product.id, "name", e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Price"
-                value={product.price}
-                onChange={(e) => updateProduct(product.id, "price", Number(e.target.value))}
-              />
-              <Input
-                type="number"
-                placeholder="Qty"
-                value={product.quantity}
-                onChange={(e) => updateProduct(product.id, "quantity", Number(e.target.value))}
-              />
-              <span className="font-medium">₦{calculateTotal(product).toFixed(2)}</span>
-              <Button variant="destructive" onClick={() => removeProduct(product.id)}>
-                Remove
-              </Button>
+          {saleItems.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No products added yet. Click "Add Product" to start.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {saleItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border rounded-lg"
+                >
+                  <div className="md:col-span-2">
+                    <Label>Product</Label>
+                    <Select
+                      value={item.product_id}
+                      onValueChange={(value) =>
+                        updateSaleItem(item.id, "product_id", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} - ₦{product.price.toLocaleString()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Quantity</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        updateSaleItem(item.id, "quantity", Number(e.target.value))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Total</Label>
+                    <div className="font-semibold text-lg pt-2">
+                      ₦{calculateTotal(item).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => removeSaleItem(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-
-          <Button variant="outline" onClick={addProduct}>
-            + Add Product
-          </Button>
+          )}
         </div>
 
-        {/* Grand Total */}
-        <div className="text-right font-bold text-lg">Grand Total: ₦{grandTotal.toFixed(2)}</div>
+        {saleItems.length > 0 && (
+          <div className="flex justify-between items-center pt-4 border-t">
+            <span className="text-lg font-semibold">Grand Total:</span>
+            <span className="text-2xl font-bold">
+              ₦{grandTotal.toLocaleString()}
+            </span>
+          </div>
+        )}
 
-        {/* Submit Button */}
-        <Button onClick={handleSubmit} disabled={loading}>
-          {loading ? "Saving..." : "Save Sale"}
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full"
+          size="lg"
+        >
+          {loading ? "Creating Sale..." : "Create Sale"}
         </Button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
-}
+};

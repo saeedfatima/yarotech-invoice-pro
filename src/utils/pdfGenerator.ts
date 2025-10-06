@@ -24,88 +24,113 @@ interface SaleData {
 export const generateInvoicePDF = async (sale: SaleData) => {
   const doc = new jsPDF();
   
-  // Company header
+  // Add YAROTECH logo placeholder (blue rounded square)
+  doc.setFillColor(33, 150, 243);
+  doc.roundedRect(20, 15, 30, 30, 5, 5, 'F');
+  
+  // Add WiFi icon representation in white
+  doc.setTextColor(255, 255, 255);
   doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text("YAROTECH NETWORK LIMITED", 105, 20, { align: "center" });
+  doc.text(")", 30, 33); // Simple WiFi representation
   
+  // Company name
+  doc.setFontSize(24);
+  doc.setTextColor(33, 150, 243);
+  doc.setFont("helvetica", "bold");
+  doc.text("YAROTECH", 55, 28);
+  doc.setFontSize(20);
+  doc.text("NETWORK LIMITED", 55, 38);
+  
+  // Company address
   doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
-  doc.text("No. 122 Lukoro Plaza A, Farm Center, Kano State", 105, 28, { align: "center" });
+  doc.text("No. 122 Lukoro Plaza A, Farm Center,", 20, 52);
+  doc.text("Kano State", 20, 59);
   
-  // Invoice title
-  doc.setFontSize(16);
+  // INVOICE title (right-aligned)
+  doc.setFontSize(32);
   doc.setFont("helvetica", "bold");
-  doc.text("INVOICE", 105, 45, { align: "center" });
+  doc.setTextColor(0, 0, 0);
+  doc.text("INVOICE", 200, 85, { align: "right" });
   
-  // Invoice details
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  const invoiceY = 55;
-  
-  doc.text(`Invoice ID: ${sale.id.substring(0, 8).toUpperCase()}`, 20, invoiceY);
-  doc.text(`Date: ${format(new Date(sale.sale_date), "MMM dd, yyyy HH:mm")}`, 20, invoiceY + 6);
-  doc.text(`Issued by: ${sale.issuer_name}`, 20, invoiceY + 12);
-  
-  // Customer details
+  // Customer and Date section
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text("Bill To:", 20, invoiceY + 22);
-  doc.setFont("helvetica", "normal");
-  doc.text(sale.customers.name, 20, invoiceY + 28);
-  if (sale.customers.email) {
-    doc.text(sale.customers.email, 20, invoiceY + 34);
-  }
-  if (sale.customers.phone) {
-    doc.text(sale.customers.phone, 20, invoiceY + 40);
-  }
-  if (sale.customers.address) {
-    doc.text(sale.customers.address, 20, invoiceY + 46);
-  }
+  doc.text("Customer", 20, 100);
+  doc.text("Date", 200, 100, { align: "right" });
   
-  // Items table
+  doc.setFont("helvetica", "normal");
+  doc.text(sale.customers?.name || "N/A", 20, 107);
+  const invoiceDate = format(new Date(sale.sale_date), "yyyy-MM-dd HH:mm");
+  doc.text(invoiceDate, 200, 107, { align: "right" });
+  
+  // Invoice ID
+  doc.setFont("helvetica", "bold");
+  doc.text("Invoice ID", 20, 120);
+  doc.setFont("helvetica", "normal");
+  const invoiceId = `INV-${sale.id.substring(0, 4).toUpperCase()}`;
+  doc.text(invoiceId, 20, 127);
+  
+  // Items table with blue header
   const tableData = sale.sale_items.map(item => [
     item.product_name,
     item.quantity.toString(),
-    `₦${item.price.toLocaleString()}`,
-    `₦${item.total.toLocaleString()}`
+    item.price.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    item.total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   ]);
   
   autoTable(doc, {
-    startY: invoiceY + 55,
-    head: [["Product", "Quantity", "Price", "Total"]],
+    startY: 140,
+    head: [["PRODUCT", "QUANTITY", "PRICE (₦)", "TOTAL (₦)"]],
     body: tableData,
-    theme: "grid",
+    theme: "plain",
     headStyles: {
-      fillColor: [66, 66, 66],
+      fillColor: [33, 150, 243],
       textColor: [255, 255, 255],
+      fontSize: 11,
       fontStyle: "bold",
+      halign: "left",
+      cellPadding: 5,
     },
-    styles: {
+    bodyStyles: {
       fontSize: 10,
+      cellPadding: 5,
+      textColor: [0, 0, 0],
+    },
+    alternateRowStyles: {
+      fillColor: [255, 255, 255],
     },
     columnStyles: {
-      0: { cellWidth: 80 },
-      1: { cellWidth: 30, halign: "center" },
-      2: { cellWidth: 40, halign: "right" },
-      3: { cellWidth: 40, halign: "right" },
+      0: { cellWidth: 70 },
+      1: { halign: "center", cellWidth: 35 },
+      2: { halign: "right", cellWidth: 40 },
+      3: { halign: "right", cellWidth: 45 },
+    },
+    foot: [[
+      { content: "", colSpan: 2 },
+      { content: "Grand Total", styles: { halign: "right", fontStyle: "bold", fontSize: 11 } },
+      { content: sale.total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), styles: { fontStyle: "bold", fontSize: 11, halign: "right" } }
+    ]],
+    footStyles: {
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
+      lineWidth: 0.5,
+      lineColor: [33, 150, 243],
     },
   });
   
-  // Grand Total
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Grand Total:", 130, finalY);
-  doc.text(`₦${sale.total.toLocaleString()}`, 190, finalY, { align: "right" });
-  
-  // Footer
+  // Issuer information
+  const finalY = (doc as any).lastAutoTable.finalY || 140;
   doc.setFontSize(10);
-  doc.setFont("helvetica", "italic");
-  const pageHeight = doc.internal.pageSize.height;
-  doc.text("Thank you for your business!", 105, pageHeight - 20, { align: "center" });
   doc.setFont("helvetica", "normal");
-  doc.text("YAROTECH NETWORK LIMITED - Your Trusted Technology Partner", 105, pageHeight - 15, { align: "center" });
+  doc.text(`Invoice Issuer: ${sale.issuer_name}`, 20, finalY + 20);
+  
+  // Footer message
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Thank you for your business with YAROTECH Network Limited!", 20, finalY + 35);
   
   // Save the PDF
-  doc.save(`Invoice-${sale.id.substring(0, 8)}.pdf`);
+  doc.save(`invoice-${invoiceId}.pdf`);
 };
