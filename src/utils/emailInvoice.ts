@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SaleData {
   id: string;
@@ -21,7 +22,7 @@ interface SaleData {
   }>;
 }
 
-export const generateInvoicePDF = async (sale: SaleData) => {
+export const generateInvoicePDFBase64 = async (sale: SaleData): Promise<string> => {
   const doc = new jsPDF();
 
   try {
@@ -38,38 +39,32 @@ export const generateInvoicePDF = async (sale: SaleData) => {
     console.error('Error loading logo:', error);
   }
 
-  // Company name
   doc.setFontSize(24);
   doc.setTextColor(33, 150, 243);
   doc.setFont("helvetica", "bold");
   doc.text("YAROTECH", 60, 28);
   doc.setFontSize(20);
   doc.text("NETWORK LIMITED", 60, 38);
-  
-  // Company address and contact
+
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "normal");
   doc.text("No. 122 Lukoro Plaza A, Farm Center, Kano State", 20, 52);
   doc.setTextColor(33, 150, 243);
   doc.text("Email: info@yarotech.com.ng", 20, 59);
-  
-  // Horizontal line separator
+
   doc.setDrawColor(33, 150, 243);
   doc.setLineWidth(1);
   doc.line(20, 65, 190, 65);
 
-  // INVOICE title (right-aligned)
   doc.setFontSize(36);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(33, 150, 243);
   doc.text("INVOICE", 200, 85, { align: "right" });
 
-  // Light background box for invoice details
   doc.setFillColor(248, 249, 250);
   doc.roundedRect(20, 92, 170, 38, 3, 3, 'F');
 
-  // Customer and Date section
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
@@ -81,21 +76,19 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   const invoiceDate = format(new Date(sale.sale_date), "MMM dd, yyyy HH:mm");
   doc.text(invoiceDate, 115, 109);
 
-  // Invoice ID
   doc.setFont("helvetica", "bold");
   doc.text("Invoice ID:", 25, 120);
   doc.setFont("helvetica", "normal");
   const invoiceId = `INV-${sale.id.substring(0, 8).toUpperCase()}`;
   doc.text(invoiceId, 25, 127);
-  
-  // Items table with blue header
+
   const tableData = sale.sale_items.map(item => [
     item.product_name,
     item.quantity.toString(),
     item.price.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
     item.total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   ]);
-  
+
   autoTable(doc, {
     startY: 145,
     head: [["PRODUCT", "QUANTITY", "PRICE (₦)", "TOTAL (₦)"]],
@@ -137,8 +130,7 @@ export const generateInvoicePDF = async (sale: SaleData) => {
       lineWidth: 0,
     },
   });
-  
-  // Issuer information
+
   const finalY = (doc as any).lastAutoTable.finalY || 140;
 
   doc.setDrawColor(224, 224, 224);
@@ -152,7 +144,6 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   doc.setFont("helvetica", "normal");
   doc.text(sale.issuer_name, 20, finalY + 32);
 
-  // Footer message with background
   doc.setFillColor(33, 150, 243);
   doc.roundedRect(20, finalY + 42, 170, 15, 3, 3, 'F');
 
@@ -161,11 +152,38 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   doc.setTextColor(255, 255, 255);
   doc.text("Thank you for your business with YAROTECH Network Limited!", 105, finalY + 51, { align: "center" });
 
-  // Page number at bottom
   doc.setFontSize(8);
   doc.setTextColor(128, 128, 128);
   doc.text("Page 1 of 1", 105, 285, { align: "center" });
 
-  // Save the PDF
-  doc.save(`invoice-${invoiceId}.pdf`);
+  return doc.output('dataurlstring');
+};
+
+export const sendInvoiceEmail = async (sale: SaleData): Promise<void> => {
+  const pdfBase64 = await generateInvoicePDFBase64(sale);
+  const invoiceId = `INV-${sale.id.substring(0, 8).toUpperCase()}`;
+
+  const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-invoice-email`;
+
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      invoiceId,
+      customerName: sale.customers?.name || 'N/A',
+      saleDate: sale.sale_date,
+      total: sale.total,
+      issuerName: sale.issuer_name,
+      pdfBase64,
+    }),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || 'Failed to send email');
+  }
 };

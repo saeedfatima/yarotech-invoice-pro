@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileDown, Eye } from "lucide-react";
+import { FileDown, Mail } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { generateInvoicePDF } from "@/utils/pdfGenerator";
+import { sendInvoiceEmail } from "@/utils/emailInvoice";
 
 interface Sale {
   id: string;
@@ -57,7 +58,6 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
 
   const handleDownloadInvoice = async (saleId: string) => {
     try {
-      // Fetch sale with items
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .select(`
@@ -70,16 +70,50 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
 
       if (saleError) throw saleError;
 
-      // Generate and download PDF
       await generateInvoicePDF(sale);
-      
+
       toast({ title: "Invoice downloaded successfully!" });
     } catch (error) {
       console.error("Error downloading invoice:", error);
-      toast({ 
-        title: "Error downloading invoice", 
+      toast({
+        title: "Error downloading invoice",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEmailInvoice = async (saleId: string) => {
+    try {
+      toast({
+        title: "Sending email...",
+        description: "Please wait while we send the invoice."
+      });
+
+      const { data: sale, error: saleError } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          customers (*),
+          sale_items (*)
+        `)
+        .eq("id", saleId)
+        .single();
+
+      if (saleError) throw saleError;
+
+      await sendInvoiceEmail(sale);
+
+      toast({
+        title: "Email sent successfully!",
+        description: "Invoice has been sent to info@yarotech.com.ng"
+      });
+    } catch (error) {
+      console.error("Error emailing invoice:", error);
+      toast({
+        title: "Error sending email",
+        description: error.message || "Failed to send invoice email",
+        variant: "destructive"
       });
     }
   };
@@ -127,13 +161,21 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
                   </div>
 
                   <div className="flex gap-2">
-                    <Button 
+                    <Button
                       onClick={() => handleDownloadInvoice(sale.id)}
                       size="sm"
                       variant="outline"
                     >
                       <FileDown className="h-4 w-4 mr-2" />
-                      Invoice
+                      Download
+                    </Button>
+                    <Button
+                      onClick={() => handleEmailInvoice(sale.id)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email
                     </Button>
                   </div>
                 </div>
