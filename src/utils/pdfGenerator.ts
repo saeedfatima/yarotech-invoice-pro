@@ -33,89 +33,88 @@ export const generateInvoicePDF = async (sale: SaleData) => {
       reader.readAsDataURL(logoBlob);
     });
 
-    doc.addImage(logoDataUrl, 'PNG', 15, 12, 50, 50);
+    doc.addImage(logoDataUrl, 'PNG', 15, 10, 60, 60);
   } catch (error) {
     console.error('Error loading logo:', error);
   }
 
-  // Centered Company Information
-  const centerX = 105;
-  doc.setFontSize(22);
+  // Company name aligned horizontally with logo
+  doc.setFontSize(24);
   doc.setTextColor(33, 150, 243);
   doc.setFont("helvetica", "bold");
-  doc.text("YAROTECH NETWORK LIMITED", centerX, 22, { align: "center" });
+  doc.text("YAROTECH NETWORK LIMITED", 85, 30);
 
-  // Company address and contact - centered
+  // Company address and contact - left aligned below company name
   doc.setFontSize(9);
   doc.setTextColor(60, 60, 60);
   doc.setFont("helvetica", "normal");
-  doc.text("No. 122 Lukoro Plaza A, Farm Center, Kano State", centerX, 30, { align: "center" });
+  doc.text("No. 122 Lukoro Plaza A, Farm Center, Kano State", 85, 40);
 
   doc.setFontSize(9);
   doc.setTextColor(33, 150, 243);
   doc.setFont("helvetica", "normal");
-  doc.text("Phone: +234 XXX XXX XXXX", centerX, 36, { align: "center" });
-  doc.text("Email: info@yarotech.com.ng", centerX, 42, { align: "center" });
+  doc.text("Phone: +234 XXX XXX XXXX", 85, 48);
+  doc.text("Email: info@yarotech.com.ng", 85, 56);
 
-  // Decorative line separator with gradient effect
+  // Decorative line separator
   doc.setDrawColor(33, 150, 243);
   doc.setLineWidth(0.8);
-  doc.line(15, 50, 195, 50);
+  doc.line(15, 75, 195, 75);
   doc.setDrawColor(33, 150, 243);
   doc.setLineWidth(0.3);
-  doc.line(15, 51.5, 195, 51.5);
+  doc.line(15, 76.5, 195, 76.5);
 
   // INVOICE title with background accent
   doc.setFillColor(33, 150, 243);
-  doc.roundedRect(140, 58, 55, 18, 2, 2, 'F');
+  doc.roundedRect(140, 83, 55, 18, 2, 2, 'F');
 
   doc.setFontSize(28);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("INVOICE", 167.5, 70, { align: "center" });
+  doc.text("INVOICE", 167.5, 95, { align: "center" });
 
   // Enhanced invoice details section with border
   doc.setDrawColor(33, 150, 243);
   doc.setLineWidth(0.5);
   doc.setFillColor(250, 252, 255);
-  doc.roundedRect(15, 85, 180, 42, 3, 3, 'FD');
+  doc.roundedRect(15, 110, 180, 42, 3, 3, 'FD');
 
   // Invoice ID with accent background
   doc.setFillColor(33, 150, 243);
-  doc.roundedRect(20, 90, 55, 10, 2, 2, 'F');
+  doc.roundedRect(20, 115, 55, 10, 2, 2, 'F');
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("INVOICE ID", 47.5, 96.5, { align: "center" });
+  doc.text("INVOICE ID", 47.5, 121.5, { align: "center" });
 
   const invoiceId = `INV-${sale.id.substring(0, 8).toUpperCase()}`;
   doc.setFontSize(12);
   doc.setTextColor(33, 150, 243);
   doc.setFont("helvetica", "bold");
-  doc.text(invoiceId, 47.5, 105, { align: "center" });
+  doc.text(invoiceId, 47.5, 130, { align: "center" });
 
   // Customer section
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(60, 60, 60);
-  doc.text("BILL TO:", 20, 116);
+  doc.text("BILL TO:", 20, 141);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text(sale.customers?.name || "N/A", 20, 122);
+  doc.text(sale.customers?.name || "N/A", 20, 147);
 
   // Date section
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(60, 60, 60);
-  doc.text("DATE:", 145, 116);
+  doc.text("DATE:", 145, 141);
 
   const invoiceDate = format(new Date(sale.sale_date), "MMM dd, yyyy HH:mm");
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(0, 0, 0);
-  doc.text(invoiceDate, 145, 122);
+  doc.text(invoiceDate, 145, 147);
   
   // Items table with blue header
   const tableData = sale.sale_items.map(item => [
@@ -126,7 +125,7 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   ]);
   
   autoTable(doc, {
-    startY: 140,
+    startY: 165,
     head: [["PRODUCT", "QUANTITY", "PRICE (₦)", "TOTAL (₦)"]],
     body: tableData,
     theme: "grid",
@@ -186,13 +185,9 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   doc.setTextColor(33, 150, 243);
   doc.text(sale.issuer_name, 15, finalY + 27);
 
-  // Enhanced footer with gradient-like appearance
+  // Enhanced footer
   doc.setFillColor(33, 150, 243);
   doc.roundedRect(15, finalY + 38, 180, 18, 3, 3, 'F');
-
-  doc.setDrawColor(20, 100, 180);
-  doc.setLineWidth(2);
-  doc.line(15, finalY + 47, 195, finalY + 47);
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
