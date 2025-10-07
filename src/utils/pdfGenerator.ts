@@ -33,7 +33,7 @@ export const generateInvoicePDF = async (sale: SaleData) => {
       reader.readAsDataURL(logoBlob);
     });
 
-    doc.addImage(logoDataUrl, 'PNG', 15, 15, 40, 40);
+    doc.addImage(logoDataUrl, 'PNG', 15, 12, 50, 50);
   } catch (error) {
     console.error('Error loading logo:', error);
   }
