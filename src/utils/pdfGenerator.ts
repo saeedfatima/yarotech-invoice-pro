@@ -25,7 +25,7 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   const doc = new jsPDF();
 
   try {
-    const logoImg = await fetch('/yarotech logo copy.png');
+    const logoImg = await fetch('/IMG-20251004-WA0030.jpg');
     const logoBlob = await logoImg.blob();
     const logoDataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -33,88 +33,60 @@ export const generateInvoicePDF = async (sale: SaleData) => {
       reader.readAsDataURL(logoBlob);
     });
 
-    doc.addImage(logoDataUrl, 'PNG', 20, 10, 60, 60);
+    doc.addImage(logoDataUrl, 'JPEG', 20, 15, 35, 35);
   } catch (error) {
     console.error('Error loading logo:', error);
   }
 
-  // Company name aligned horizontally with logo
+  // Company name
   doc.setFontSize(24);
   doc.setTextColor(33, 150, 243);
   doc.setFont("helvetica", "bold");
-  doc.text("YAROTECH NETWORK LIMITED", 85, 30);
-
-  // Company address and contact - left aligned below company name
-  doc.setFontSize(9);
-  doc.setTextColor(60, 60, 60);
-  doc.setFont("helvetica", "normal");
-  doc.text("No. 122 Lukoro Plaza A, Farm Center, Kano State", 85, 40);
-
-  doc.setFontSize(9);
-  doc.setTextColor(33, 150, 243);
-  doc.setFont("helvetica", "normal");
-  doc.text("Phone: +234 XXX XXX XXXX", 85, 48);
-  doc.text("Email: info@yarotech.com.ng", 85, 56);
-
-  // Decorative line separator
-  doc.setDrawColor(33, 150, 243);
-  doc.setLineWidth(0.8);
-  doc.line(15, 75, 195, 75);
-  doc.setDrawColor(33, 150, 243);
-  doc.setLineWidth(0.3);
-  doc.line(15, 76.5, 195, 76.5);
-
-  // INVOICE title with background accent
-  doc.setFillColor(33, 150, 243);
-  doc.roundedRect(140, 83, 55, 18, 2, 2, 'F');
-
-  doc.setFontSize(28);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
-  doc.text("INVOICE", 167.5, 95, { align: "center" });
-
-  // Enhanced invoice details section with border
-  doc.setDrawColor(33, 150, 243);
-  doc.setLineWidth(0.5);
-  doc.setFillColor(250, 252, 255);
-  doc.roundedRect(15, 110, 180, 42, 3, 3, 'FD');
-
-  // Invoice ID with accent background
-  doc.setFillColor(33, 150, 243);
-  doc.roundedRect(20, 115, 55, 10, 2, 2, 'F');
+  doc.text("YAROTECH", 60, 28);
+  doc.setFontSize(20);
+  doc.text("NETWORK LIMITED", 60, 38);
+  
+  // Company address and contact
   doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
-  doc.text("INVOICE ID", 47.5, 121.5, { align: "center" });
-
-  const invoiceId = `INV-${sale.id.substring(0, 8).toUpperCase()}`;
-  doc.setFontSize(12);
-  doc.setTextColor(33, 150, 243);
-  doc.setFont("helvetica", "bold");
-  doc.text(invoiceId, 47.5, 130, { align: "center" });
-
-  // Customer section
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(60, 60, 60);
-  doc.text("BILL TO:", 20, 141);
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text(sale.customers?.name || "N/A", 20, 147);
-
-  // Date section
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(60, 60, 60);
-  doc.text("DATE:", 145, 141);
-
-  const invoiceDate = format(new Date(sale.sale_date), "MMM dd, yyyy HH:mm");
-  doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
+  doc.text("No. 122 Lukoro Plaza A, Farm Center, Kano State", 20, 52);
+  doc.setTextColor(33, 150, 243);
+  doc.text("Email: info@yarotech.com.ng", 20, 59);
+  
+  // Horizontal line separator
+  doc.setDrawColor(33, 150, 243);
+  doc.setLineWidth(1);
+  doc.line(20, 65, 190, 65);
+
+  // INVOICE title (right-aligned)
+  doc.setFontSize(36);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(33, 150, 243);
+  doc.text("INVOICE", 200, 85, { align: "right" });
+
+  // Light background box for invoice details
+  doc.setFillColor(248, 249, 250);
+  doc.roundedRect(20, 92, 170, 38, 3, 3, 'F');
+
+  // Customer and Date section
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text(invoiceDate, 145, 147);
+  doc.text("Customer:", 25, 102);
+  doc.text("Date:", 115, 102);
+
+  doc.setFont("helvetica", "normal");
+  doc.text(sale.customers?.name || "N/A", 25, 109);
+  const invoiceDate = format(new Date(sale.sale_date), "MMM dd, yyyy HH:mm");
+  doc.text(invoiceDate, 115, 109);
+
+  // Invoice ID
+  doc.setFont("helvetica", "bold");
+  doc.text("Invoice ID:", 25, 120);
+  doc.setFont("helvetica", "normal");
+  const invoiceId = `INV-${sale.id.substring(0, 8).toUpperCase()}`;
+  doc.text(invoiceId, 25, 127);
   
   // Items table with blue header
   const tableData = sale.sale_items.map(item => [
@@ -125,80 +97,73 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   ]);
   
   autoTable(doc, {
-    startY: 165,
+    startY: 145,
     head: [["PRODUCT", "QUANTITY", "PRICE (₦)", "TOTAL (₦)"]],
     body: tableData,
-    theme: "grid",
+    theme: "striped",
     headStyles: {
       fillColor: [33, 150, 243],
       textColor: [255, 255, 255],
-      fontSize: 11,
+      fontSize: 12,
       fontStyle: "bold",
       halign: "left",
-      cellPadding: { top: 8, right: 6, bottom: 8, left: 6 },
+      cellPadding: 8,
       lineWidth: 0,
-      lineColor: [33, 150, 243],
     },
     bodyStyles: {
       fontSize: 10,
-      cellPadding: { top: 6, right: 6, bottom: 6, left: 6 },
-      textColor: [40, 40, 40],
-      lineWidth: 0.3,
-      lineColor: [200, 200, 200],
+      cellPadding: 7,
+      textColor: [0, 0, 0],
+      lineWidth: 0.1,
+      lineColor: [224, 224, 224],
     },
     alternateRowStyles: {
-      fillColor: [250, 252, 255],
+      fillColor: [248, 249, 250],
     },
     columnStyles: {
-      0: { cellWidth: 80, fontStyle: "normal" },
-      1: { halign: "center", cellWidth: 30 },
+      0: { cellWidth: 75 },
+      1: { halign: "center", cellWidth: 35 },
       2: { halign: "right", cellWidth: 40 },
-      3: { halign: "right", cellWidth: 40, fontStyle: "bold", textColor: [33, 150, 243] },
+      3: { halign: "right", cellWidth: 40 },
     },
     foot: [[
       { content: "", colSpan: 2 },
-      { content: "GRAND TOTAL", styles: { halign: "right", fontStyle: "bold", fontSize: 13, fillColor: [33, 150, 243], textColor: [255, 255, 255], cellPadding: 10 } },
-      { content: `₦ ${sale.total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, styles: { fontStyle: "bold", fontSize: 13, halign: "right", fillColor: [20, 100, 180], textColor: [255, 255, 255], cellPadding: 10 } }
+      { content: "Grand Total", styles: { halign: "right", fontStyle: "bold", fontSize: 12, fillColor: [33, 150, 243], textColor: [255, 255, 255], cellPadding: 8 } },
+      { content: `₦ ${sale.total.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, styles: { fontStyle: "bold", fontSize: 12, halign: "right", fillColor: [33, 150, 243], textColor: [255, 255, 255], cellPadding: 8 } }
     ]],
     footStyles: {
       fillColor: [33, 150, 243],
       textColor: [255, 255, 255],
       lineWidth: 0,
     },
-    margin: { left: 15, right: 15 },
   });
   
-  // Issuer information with enhanced styling
+  // Issuer information
   const finalY = (doc as any).lastAutoTable.finalY || 140;
 
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(15, finalY + 12, 195, finalY + 12);
+  doc.setDrawColor(224, 224, 224);
+  doc.setLineWidth(0.5);
+  doc.line(20, finalY + 15, 190, finalY + 15);
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(60, 60, 60);
-  doc.text("INVOICE ISSUED BY:", 15, finalY + 20);
+  doc.setTextColor(0, 0, 0);
+  doc.text("Invoice Issued By:", 20, finalY + 25);
+  doc.setFont("helvetica", "normal");
+  doc.text(sale.issuer_name, 20, finalY + 32);
+
+  // Footer message with background
+  doc.setFillColor(33, 150, 243);
+  doc.roundedRect(20, finalY + 42, 170, 15, 3, 3, 'F');
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(33, 150, 243);
-  doc.text(sale.issuer_name, 15, finalY + 27);
-
-  // Enhanced footer
-  doc.setFillColor(33, 150, 243);
-  doc.roundedRect(15, finalY + 38, 180, 18, 3, 3, 'F');
-
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
-  doc.text("Thank you for your business with YAROTECH Network Limited!", 105, finalY + 49, { align: "center" });
+  doc.text("Thank you for your business with YAROTECH Network Limited!", 105, finalY + 51, { align: "center" });
 
-  // Professional footer information
+  // Page number at bottom
   doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.setFont("helvetica", "normal");
-  doc.text("This is a computer-generated invoice and requires no signature.", 105, finalY + 66, { align: "center" });
+  doc.setTextColor(128, 128, 128);
   doc.text("Page 1 of 1", 105, 285, { align: "center" });
 
   // Save the PDF

@@ -16,6 +16,10 @@ interface SaleItem {
   quantity: number;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+}
 
 interface Product {
   id: string;
@@ -29,15 +33,22 @@ interface SalesFormProps {
 
 export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
-  const [customerName, setCustomerName] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState("");
   const [issuerName, setIssuerName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-
+  
   useEffect(() => {
+    loadCustomers();
     loadProducts();
   }, []);
-
+  
+  const loadCustomers = async () => {
+    const { data } = await supabase.from("customers").select("id, name");
+    if (data) setCustomers(data);
+  };
+  
   const loadProducts = async () => {
     const { data } = await supabase.from("products").select("id, name, price");
     if (data) setProducts(data);
@@ -84,7 +95,7 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
   const grandTotal = saleItems.reduce((sum, item) => sum + calculateTotal(item), 0);
 
   const handleSubmit = async () => {
-    if (!customerName.trim() || !issuerName.trim() || saleItems.length === 0) {
+    if (!selectedCustomer || !issuerName || saleItems.length === 0) {
       toast({
         title: "Missing information",
         description: "Please fill in all fields and add at least one product.",
@@ -96,18 +107,10 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
     setLoading(true);
 
     try {
-      const { data: customer, error: customerError } = await supabase
-        .from("customers")
-        .insert({ name: customerName.trim() })
-        .select()
-        .single();
-
-      if (customerError) throw customerError;
-
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .insert({
-          customer_id: customer.id,
+          customer_id: selectedCustomer,
           issuer_name: issuerName,
           total: grandTotal,
         })
@@ -130,7 +133,7 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
 
       toast({ title: "Sale created successfully!" });
       setSaleItems([]);
-      setCustomerName("");
+      setSelectedCustomer("");
       setIssuerName("");
       onSaleCreated?.();
     } catch (err) {
@@ -152,13 +155,19 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="customer">Customer Name *</Label>
-            <Input
-              id="customer"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Enter customer name"
-            />
+            <Label htmlFor="customer">Customer *</Label>
+            <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
