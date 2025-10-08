@@ -24,8 +24,8 @@ interface SaleData {
 export const generateInvoicePDF = async (sale: SaleData) => {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
 
-  const primaryColor = [33, 150, 243];
-  const accentColor = [20, 100, 180];
+  const primaryColor: [number, number, number] = [33, 150, 243];
+  const accentColor: [number, number, number] = [20, 100, 180];
   const marginX = 40;
 
   // --- LOGO ---
