@@ -129,7 +129,7 @@ const Auth = () => {
           <div className="flex justify-center mb-4">
             <div className="bg-white p-4 rounded-lg">
               <img
-                src="/IMG-20251004-WA0030.jpg"
+                src="/yarotech logo copy.png"
                 alt="YAROTECH Logo"
                 className="h-24 w-auto object-contain"
               />
