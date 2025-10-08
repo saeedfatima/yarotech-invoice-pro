@@ -145,53 +145,45 @@ export const generateInvoicePDF = async (sale: SaleData) => {
 
   const finalY = (doc as any).lastAutoTable.finalY + 20;
 
-  // --- TOTALS SECTION ---
-  const subtotal = sale.sale_items.reduce((sum, i) => sum + i.total, 0);
-  const vat = subtotal * 0.00; // Adjust VAT as needed
-  const grandTotal = subtotal + vat;
-
-  // Add a subtle box around totals
-  doc.setDrawColor(200, 200, 200);
-  doc.roundedRect(340, finalY - 10, 215, 70, 4, 4);
-
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text("Subtotal:", 360, finalY + 5);
-  doc.text("VAT (0%):", 360, finalY + 25);
-
+  // --- GRAND TOTAL SECTION ---
+  // Create blue background box for grand total
+  doc.setFillColor(...primaryColor);
+  doc.roundedRect(350, finalY, 205, 35, 4, 4, "F");
+  
+  // Add white text for grand total
+  doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.text("GRAND TOTAL:", 360, finalY + 45);
-
-  doc.setFont("helvetica", "normal");
-  doc.text(subtotal.toLocaleString("en-NG", { minimumFractionDigits: 2 }), 530, finalY + 5, { align: "right" });
-  doc.text(vat.toLocaleString("en-NG", { minimumFractionDigits: 2 }), 530, finalY + 25, { align: "right" });
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...primaryColor);
+  doc.setFontSize(12);
+  doc.text("GRAND TOTAL", 370, finalY + 15);
+  
+  doc.setFontSize(14);
   doc.text(
-    `₦ ${grandTotal.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`,
-    530,
-    finalY + 45,
+    `₦ ${sale.total.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`,
+    535,
+    finalY + 22,
     { align: "right" }
   );
 
   // --- ISSUER INFO ---
   doc.setTextColor(0, 0, 0);
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  doc.text("INVOICE ISSUED BY:", marginX, finalY + 90);
+  doc.setFontSize(10);
+  doc.text("INVOICE ISSUED BY:", marginX, finalY + 60);
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(...primaryColor);
-  doc.text(sale.issuer_name, marginX + 130, finalY + 90);
+  doc.text(sale.issuer_name, marginX + 130, finalY + 60);
 
   // --- FOOTER ---
   doc.setFillColor(...primaryColor);
-  doc.roundedRect(marginX, finalY + 110, 515, 25, 4, 4, "F");
+  doc.roundedRect(marginX, finalY + 80, 515, 25, 4, 4, "F");
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(255, 255, 255);
   doc.text(
     "Thank you for your business with YAROTECH Network Limited!",
     297.5,
-    finalY + 127,
+    finalY + 97,
     { align: "center" }
   );
 
