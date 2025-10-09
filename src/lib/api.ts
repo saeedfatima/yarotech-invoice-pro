@@ -117,6 +117,12 @@ class ApiClient {
   async getSaleInvoiceData(id: string) {
     return this.request(`/sales/${id}/invoice_data/`);
   }
+
+  async sendInvoiceEmail(id: string) {
+    return this.request(`/sales/${id}/send_email/`, {
+      method: 'POST',
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

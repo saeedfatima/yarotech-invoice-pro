@@ -118,6 +118,12 @@ The Django backend provides these API endpoints:
 
 ## Troubleshooting
 
+### Email Issues:
+- Make sure you've configured EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env
+- For Gmail, use an "App Password" not your regular password
+- Check spam folder for test emails
+- For development, you can use console backend to see emails in terminal
+
 ### Backend Issues:
 - Make sure virtual environment is activated
 - Check that port 8000 is not in use

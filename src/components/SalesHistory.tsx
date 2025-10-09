@@ -126,7 +126,7 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
 
                   <div>
                     <p className="text-sm text-muted-foreground">Customer</p>
-                    <p className="font-medium">{sale.customer_name || "N/A"}</p>
+                    <p className="font-medium">{sale.customers?.name || "N/A"}</p>
                   </div>
 
                   <div>
