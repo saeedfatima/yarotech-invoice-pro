@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { SalesForm } from "@/components/SalesForm";
@@ -17,11 +17,11 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    const response = await apiClient.signOut();
+    if (response.error) {
       toast({
         title: "Error signing out",
-        description: error.message,
+        description: response.error,
         variant: "destructive",
       });
     } else {

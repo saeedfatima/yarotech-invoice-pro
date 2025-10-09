@@ -1,0 +1,1 @@
+# Django backend for YAROTECH Invoice Pro

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -39,8 +39,10 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
   }, []);
 
   const loadProducts = async () => {
-    const { data } = await supabase.from("products").select("id, name, price");
-    if (data) setProducts(data);
+    const response = await apiClient.getProducts();
+    if (response.data) {
+      setProducts(response.data);
+    }
   };
 
   const addSaleItem = () => {
@@ -96,37 +98,20 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
     setLoading(true);
 
     try {
-      const { data: customer, error: customerError } = await supabase
-        .from("customers")
-        .insert({ name: customerName.trim() })
-        .select()
-        .single();
-
-      if (customerError) throw customerError;
-
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .insert({
-          customer_id: customer.id,
-          issuer_name: issuerName,
-          total: grandTotal,
-        })
-        .select()
-        .single();
-
-      if (saleError) throw saleError;
-
-      const { error: itemsError } = await supabase.from("sale_items").insert(
-        saleItems.map((item) => ({
-          sale_id: sale.id,
-          product_id: item.product_id,
+      const response = await apiClient.createSale({
+        customer_name: customerName.trim(),
+        issuer_name: issuerName,
+        sale_items: saleItems.map((item) => ({
+          product_id: item.product_id || undefined,
           product_name: item.product_name,
           quantity: item.quantity,
           price: item.price,
-        }))
-      );
+        })),
+      });
 
-      if (itemsError) throw itemsError;
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
       toast({ title: "Sale created successfully!" });
       setSaleItems([]);
@@ -137,6 +122,7 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
       console.error(err);
       toast({
         title: "Failed to create sale",
+        description: err instanceof Error ? err.message : "Unknown error",
         variant: "destructive",
       });
     } finally {

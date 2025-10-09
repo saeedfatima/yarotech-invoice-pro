@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,26 +27,14 @@ const Auth = () => {
       const validated = authSchema.parse({ email, password });
       setLoading(true);
 
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email: validated.email,
-        password: validated.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
-      });
+      const response = await apiClient.signUp(validated.email, validated.password);
 
-      if (error) {
-        if (error.message.includes("already registered")) {
-          toast({
-            title: "Account already exists",
-            description: "Please sign in instead.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
+      if (response.error) {
+        toast({
+          title: "Error",
+          description: response.error,
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Success!",
@@ -65,7 +53,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Error",
-          description: error.message,
+          description: error instanceof Error ? error.message : "Unknown error",
           variant: "destructive",
         });
       }
@@ -81,21 +69,14 @@ const Auth = () => {
       const validated = authSchema.parse({ email, password });
       setLoading(true);
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: validated.email,
-        password: validated.password,
-      });
+      const response = await apiClient.signIn(validated.email, validated.password);
 
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          toast({
-            title: "Invalid credentials",
-            description: "Please check your email and password.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
+      if (response.error) {
+        toast({
+          title: "Error",
+          description: response.error,
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Welcome back!",
@@ -113,7 +94,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Error",
-          description: error.message,
+          description: error instanceof Error ? error.message : "Unknown error",
           variant: "destructive",
         });
       }

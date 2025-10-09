@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileDown, Mail } from "lucide-react";
@@ -31,53 +31,36 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
 
   const loadSales = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("sales")
-      .select(`
-        id,
-        sale_date,
-        total,
-        issuer_name,
-        customers (
-          name,
-          email,
-          phone,
-          address
-        )
-      `)
-      .order("sale_date", { ascending: false });
-
-    if (error) {
-      toast({ title: "Error loading sales", variant: "destructive" });
-      console.error(error);
+    const response = await apiClient.getSales();
+    
+    if (response.error) {
+      toast({ 
+        title: "Error loading sales", 
+        description: response.error,
+        variant: "destructive" 
+      });
     } else {
-      setSales(data || []);
+      setSales(response.data || []);
     }
     setLoading(false);
   };
 
   const handleDownloadInvoice = async (saleId: string) => {
     try {
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .select(`
-          *,
-          customers (*),
-          sale_items (*)
-        `)
-        .eq("id", saleId)
-        .single();
+      const response = await apiClient.getSaleInvoiceData(saleId);
 
-      if (saleError) throw saleError;
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
-      await generateInvoicePDF(sale);
+      await generateInvoicePDF(response.data);
 
       toast({ title: "Invoice downloaded successfully!" });
     } catch (error) {
       console.error("Error downloading invoice:", error);
       toast({
         title: "Error downloading invoice",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
     }
@@ -90,29 +73,25 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
         description: "Please wait while we send the invoice."
       });
 
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .select(`
-          *,
-          customers (*),
-          sale_items (*)
-        `)
-        .eq("id", saleId)
-        .single();
+      const response = await apiClient.getSaleInvoiceData(saleId);
 
-      if (saleError) throw saleError;
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
-      await sendInvoiceEmail(sale);
-
+      // Note: Email functionality would need to be implemented in Django backend
+      // For now, just show success message
       toast({
-        title: "Email sent successfully!",
-        description: "Invoice has been sent to info@yarotech.com.ng"
+        title: "Email feature not implemented",
+        description: "Email functionality needs to be implemented in Django backend",
+        variant: "destructive"
       });
+
     } catch (error) {
       console.error("Error emailing invoice:", error);
       toast({
         title: "Error sending email",
-        description: error.message || "Failed to send invoice email",
+        description: error instanceof Error ? error.message : "Failed to send invoice email",
         variant: "destructive"
       });
     }
@@ -147,7 +126,7 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
 
                   <div>
                     <p className="text-sm text-muted-foreground">Customer</p>
-                    <p className="font-medium">{sale.customers?.name || "N/A"}</p>
+                    <p className="font-medium">{sale.customer_name || "N/A"}</p>
                   </div>
 
                   <div>
