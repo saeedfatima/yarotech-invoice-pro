@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiClient } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,12 +27,18 @@ const Auth = () => {
       const validated = authSchema.parse({ email, password });
       setLoading(true);
 
-      const response = await apiClient.signUp(validated.email, validated.password);
+      const { error } = await supabase.auth.signUp({
+        email: validated.email,
+        password: validated.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
 
-      if (response.error) {
+      if (error) {
         toast({
           title: "Error",
-          description: response.error,
+          description: error.message,
           variant: "destructive",
         });
       } else {
@@ -69,12 +75,15 @@ const Auth = () => {
       const validated = authSchema.parse({ email, password });
       setLoading(true);
 
-      const response = await apiClient.signIn(validated.email, validated.password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: validated.email,
+        password: validated.password,
+      });
 
-      if (response.error) {
+      if (error) {
         toast({
           title: "Error",
-          description: response.error,
+          description: error.message,
           variant: "destructive",
         });
       } else {
