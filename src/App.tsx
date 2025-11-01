@@ -19,7 +19,7 @@ const App = () => {
     // Check auth status on app load
     const checkAuthStatus = async () => {
       const response = await apiClient.getAuthStatus();
-      if (response.data && response.data.authenticated) {
+      if (response.data?.authenticated) {
         setUser(response.data.user);
       }
       setLoading(false);

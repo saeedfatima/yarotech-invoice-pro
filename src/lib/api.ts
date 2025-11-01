@@ -6,6 +6,11 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+interface AuthStatusResponse {
+  authenticated: boolean;
+  user?: any;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -42,7 +47,7 @@ class ApiClient {
 
   // Auth methods
   async getAuthStatus() {
-    return this.request('/auth/status/');
+    return this.request<AuthStatusResponse>('/auth/status/');
   }
 
   async signIn(email: string, password: string) {
@@ -67,7 +72,7 @@ class ApiClient {
 
   // Products
   async getProducts() {
-    return this.request('/products/');
+    return this.request<Array<{ id: string; name: string; price: number }>>('/products/');
   }
 
   async createProduct(product: { name: string; price: number; description?: string }) {
@@ -91,7 +96,18 @@ class ApiClient {
 
   // Sales
   async getSales() {
-    return this.request('/sales/');
+    return this.request<Array<{
+      id: string;
+      sale_date: string;
+      total: number;
+      issuer_name: string;
+      customers: {
+        name: string;
+        email: string;
+        phone: string;
+        address: string;
+      } | null;
+    }>>('/sales/');
   }
 
   async createSale(sale: {
@@ -115,7 +131,24 @@ class ApiClient {
   }
 
   async getSaleInvoiceData(id: string) {
-    return this.request(`/sales/${id}/invoice_data/`);
+    return this.request<{
+      id: string;
+      sale_date: string;
+      total: number;
+      issuer_name: string;
+      customer: {
+        name: string;
+        email?: string;
+        phone?: string;
+        address?: string;
+      };
+      items: Array<{
+        product_name: string;
+        quantity: number;
+        price: number;
+        total: number;
+      }>;
+    }>(`/sales/${id}/invoice_data/`);
   }
 
   async sendInvoiceEmail(id: string) {

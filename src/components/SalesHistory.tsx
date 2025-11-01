@@ -40,7 +40,7 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
         variant: "destructive" 
       });
     } else {
-      setSales(response.data || []);
+      setSales((response.data as Sale[]) || []);
     }
     setLoading(false);
   };
@@ -49,11 +49,21 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
     try {
       const response = await apiClient.getSaleInvoiceData(saleId);
 
-      if (response.error) {
-        throw new Error(response.error);
+      if (response.error || !response.data) {
+        throw new Error(response.error || "No data returned");
       }
 
-      await generateInvoicePDF(response.data);
+      // Map API response to PDF generator format
+      const pdfData = {
+        id: response.data.id,
+        sale_date: response.data.sale_date,
+        total: response.data.total,
+        issuer_name: response.data.issuer_name,
+        customers: response.data.customer,
+        sale_items: response.data.items,
+      };
+
+      await generateInvoicePDF(pdfData);
 
       toast({ title: "Invoice downloaded successfully!" });
     } catch (error) {

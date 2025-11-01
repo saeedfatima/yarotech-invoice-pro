@@ -41,7 +41,7 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
   const loadProducts = async () => {
     const response = await apiClient.getProducts();
     if (response.data) {
-      setProducts(response.data);
+      setProducts(response.data as Product[]);
     }
   };
 
