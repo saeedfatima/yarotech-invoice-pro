@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiClient } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { SalesForm } from "@/components/SalesForm";
@@ -17,16 +17,25 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
-    const response = await apiClient.signOut();
-    if (response.error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast({
+          title: "Error signing out",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Signed out successfully" });
+        navigate("/auth");
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
       toast({
         title: "Error signing out",
-        description: response.error,
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
-    } else {
-      toast({ title: "Signed out successfully" });
-      navigate("/auth");
     }
   };
 
