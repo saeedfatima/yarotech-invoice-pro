@@ -9,6 +9,7 @@ import { User } from "@supabase/supabase-js";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,10 @@ const App = () => {
             <Route
               path="/"
               element={user ? <Index /> : <Navigate to="/auth" replace />}
+            />
+            <Route
+              path="/admin"
+              element={user ? <AdminDashboard /> : <Navigate to="/auth" replace />}
             />
             <Route
               path="/auth"
