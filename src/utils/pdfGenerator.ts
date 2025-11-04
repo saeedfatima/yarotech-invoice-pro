@@ -108,9 +108,9 @@ export const generateInvoicePDF = async (sale: SaleData) => {
 
   autoTable(doc, {
     startY: tableY,
-    head: [["PRODUCT", "QTY", "PRICE (₦)", "TOTAL (₦)"]],
+    head: [["Product", "Qty", "Unit Price (₦)", "Amount (₦)"]],
     body: tableBody,
-    theme: "grid", // ensures visible borders
+    theme: "grid",
     styles: {
       lineColor: [180, 180, 180],
       lineWidth: 0.3,
@@ -119,7 +119,7 @@ export const generateInvoicePDF = async (sale: SaleData) => {
     headStyles: {
       fillColor: primaryColor,
       textColor: [255, 255, 255],
-      fontSize: 11,
+      fontSize: 10,
       fontStyle: "bold",
       halign: "center",
       valign: "middle",
@@ -146,21 +146,19 @@ export const generateInvoicePDF = async (sale: SaleData) => {
   const finalY = (doc as any).lastAutoTable.finalY + 20;
 
   // --- GRAND TOTAL SECTION ---
-  // Create blue background box for grand total
   doc.setFillColor(...primaryColor);
-  doc.roundedRect(350, finalY, 205, 35, 4, 4, "F");
+  doc.roundedRect(350, finalY, 205, 32, 4, 4, "F");
   
-  // Add white text for grand total
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("GRAND TOTAL", 370, finalY + 15);
+  doc.setFontSize(11);
+  doc.text("GRAND TOTAL:", 365, finalY + 20);
   
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.text(
-    `₦ ${sale.total.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`,
-    535,
-    finalY + 22,
+    `₦${sale.total.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`,
+    540,
+    finalY + 20,
     { align: "right" }
   );
 
