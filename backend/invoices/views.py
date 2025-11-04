@@ -2,6 +2,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.http import JsonResponse
+from django.core.mail import EmailMessage
+from django.conf import settings
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+import io
 from .models import Customer, Product, Sale, SaleItem
 from .serializers import (
     CustomerSerializer, ProductSerializer, SaleSerializer, 
