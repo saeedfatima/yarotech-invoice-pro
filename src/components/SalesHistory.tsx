@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileDown, Mail } from "lucide-react";
@@ -31,36 +31,65 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
 
   const loadSales = async () => {
     setLoading(true);
-    const response = await apiClient.getSales();
+    const { data, error } = await supabase
+      .from("sales")
+      .select(`
+        *,
+        customers (
+          name,
+          email,
+          phone,
+          address
+        )
+      `)
+      .order("sale_date", { ascending: false });
     
-    if (response.error) {
+    if (error) {
       toast({ 
         title: "Error loading sales", 
-        description: response.error,
+        description: error.message,
         variant: "destructive" 
       });
     } else {
-      setSales((response.data as Sale[]) || []);
+      setSales(data || []);
     }
     setLoading(false);
   };
 
   const handleDownloadInvoice = async (saleId: string) => {
     try {
-      const response = await apiClient.getSaleInvoiceData(saleId);
+      const { data: saleData, error } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          customers (
+            name,
+            email,
+            phone,
+            address
+          ),
+          sale_items (
+            product_name,
+            quantity,
+            price,
+            total
+          )
+        `)
+        .eq("id", saleId)
+        .single();
 
-      if (response.error || !response.data) {
-        throw new Error(response.error || "No data returned");
+      if (error || !saleData) {
+        throw new Error(error?.message || "No data returned");
       }
 
-      // Map API response to PDF generator format
+      // Map to PDF generator format
       const pdfData = {
-        id: response.data.id,
-        sale_date: response.data.sale_date,
-        total: response.data.total,
-        issuer_name: response.data.issuer_name,
-        customers: response.data.customer,
-        sale_items: response.data.items,
+        id: saleData.id,
+        sale_date: saleData.sale_date,
+        total: saleData.total,
+        issuer_name: saleData.issuer_name,
+        customers: saleData.customers,
+        sale_items: saleData.sale_items,
       };
 
       await generateInvoicePDF(pdfData);
@@ -83,18 +112,44 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
         description: "Please wait while we send the invoice."
       });
 
-      const response = await apiClient.getSaleInvoiceData(saleId);
+      const { data: saleData, error } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          customers (
+            name,
+            email,
+            phone,
+            address
+          ),
+          sale_items (
+            product_name,
+            quantity,
+            price,
+            total
+          )
+        `)
+        .eq("id", saleId)
+        .single();
 
-      if (response.error) {
-        throw new Error(response.error);
+      if (error || !saleData) {
+        throw new Error(error?.message || "No data returned");
       }
 
-      // Note: Email functionality would need to be implemented in Django backend
-      // For now, just show success message
+      const pdfData = {
+        id: saleData.id,
+        sale_date: saleData.sale_date,
+        total: saleData.total,
+        issuer_name: saleData.issuer_name,
+        customers: saleData.customers,
+        sale_items: saleData.sale_items,
+      };
+
+      await sendInvoiceEmail(pdfData);
+
       toast({
-        title: "Email feature not implemented",
-        description: "Email functionality needs to be implemented in Django backend",
-        variant: "destructive"
+        title: "Email sent successfully!",
+        description: "Invoice has been sent to the customer."
       });
 
     } catch (error) {
