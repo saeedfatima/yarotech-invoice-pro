@@ -218,3 +218,5 @@ export const ProductManagement = () => {
     </div>
   );
 };
+
+export default ProductManagement;

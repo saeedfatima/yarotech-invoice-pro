@@ -231,3 +231,5 @@ export const SalesHistory = ({ refreshTrigger }: { refreshTrigger: number }) => 
     </Card>
   );
 };
+
+export default SalesHistory;

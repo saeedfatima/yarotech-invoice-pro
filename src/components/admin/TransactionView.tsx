@@ -105,3 +105,5 @@ export const TransactionView = () => {
     </Card>
   );
 };
+
+export default TransactionView;

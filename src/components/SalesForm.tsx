@@ -254,3 +254,5 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
     </Card>
   );
 };
+
+export default SalesForm;
