@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { apiClient } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -39,9 +39,19 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
   }, []);
 
   const loadProducts = async () => {
-    const response = await apiClient.getProducts();
-    if (response.data) {
-      setProducts(response.data as Product[]);
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      toast({
+        title: "Error loading products",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setProducts(data || []);
     }
   };
 
@@ -98,20 +108,58 @@ export const SalesForm = ({ onSaleCreated }: SalesFormProps) => {
     setLoading(true);
 
     try {
-      const response = await apiClient.createSale({
-        customer_name: customerName.trim(),
-        issuer_name: issuerName,
-        sale_items: saleItems.map((item) => ({
-          product_id: item.product_id || undefined,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-      });
+      // Create or find customer
+      let customerId: string | null = null;
+      const { data: existingCustomer } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("name", customerName.trim())
+        .single();
 
-      if (response.error) {
-        throw new Error(response.error);
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+      } else {
+        const { data: newCustomer, error: customerError } = await supabase
+          .from("customers")
+          .insert([{ name: customerName.trim() }])
+          .select("id")
+          .single();
+
+        if (customerError) throw customerError;
+        customerId = newCustomer.id;
       }
+
+      // Calculate total
+      const total = saleItems.reduce((sum, item) => sum + calculateTotal(item), 0);
+
+      // Create sale
+      const { data: sale, error: saleError } = await supabase
+        .from("sales")
+        .insert([{
+          customer_id: customerId,
+          issuer_name: issuerName,
+          total,
+        }])
+        .select("id")
+        .single();
+
+      if (saleError) throw saleError;
+
+      // Create sale items
+      const { error: itemsError } = await supabase
+        .from("sale_items")
+        .insert(
+          saleItems.map((item) => ({
+            sale_id: sale.id,
+            product_id: item.product_id || null,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            price: item.price,
+            total: calculateTotal(item),
+          }))
+        );
+
+      if (itemsError) throw itemsError;
 
       toast({ title: "Sale created successfully!" });
       setSaleItems([]);
